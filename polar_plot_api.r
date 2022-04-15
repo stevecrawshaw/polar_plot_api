@@ -1,8 +1,5 @@
-# install.packages("xfun")
-library("xfun")
-packages <- c("plumber", "tidyverse", "openair", "glue")
-pkg_attach2(packages)
-
+# install.packages("plumber")
+library("plumber")
 # Source import functions ----
 
 source("../airquality/importODS.R")
@@ -10,36 +7,36 @@ source("../airquality/importODS.R")
 # Variables ----
 
 date_on <- "2022-04-01 00:00:00"
-date_off <- "2022-04-14 23:59:59"
+date_off <- "2022-04-07 23:59:59"
 sensor_id <- "70326"
 pollutant <- "pm10"
 
 
-# Checking inputs ----
-
-
+# Functions for checking inputs ----
 
 recent <- . %>% as.Date() %>% year() %>% `>`(2018)
+
 not_too_recent <- . %>% as.Date() %>% `<`(Sys.Date() - 1)
+
 order_dates <- function(date_on, date_off){
     date_off %>% as.Date() > date_on %>% as.Date()
 }
 
-not_too_recent("2022-04-13")
-
-order_dates(date_on, date_off)
-
-check_length <- function(date_on, date_off, ld_raw){
+# Function for download aq and met data ----
+get_data <- function(date_on, date_off, sensor_id){
+# have we got most (95%) of the data
+check_length <- function(date_on, date_off, dl_data){
+    nms <- names(dl_data)
+    ismet <- any(grepl("wd", st)) # met data half hourly so adjust check
+    if(ismet) mult = 2 else mult = 1
     start = as.POSIXct(date_on)
     end = as.POSIXct(date_off)
-    difftime(end, start, units = "hours") %>% 
-        as.integer() == nrow(ld_raw)
+    (difftime(end, start, units = "hours") %>% 
+        as.integer() * mult / nrow(dl_data)) %>% 
+        abs() > 0.95 %>% 
+        return()
 }
 
-
-# get some sample data
-
-# aq
 ld_raw <- getODSExport(select_str = "sensor_id, date, pm10, pm2_5",
                        date_col = "date",
                        dateon = date_on,
@@ -48,11 +45,9 @@ ld_raw <- getODSExport(select_str = "sensor_id, date, pm10, pm2_5",
                        dataset = "luftdaten_pm_bristol",
                        order_by = NULL,
                        refine = NULL,
-                       apikey = NULL)# %>% 
+                       apikey = NULL) %>% 
     rename(pm2.5 = pm2_5)
 
-    
-    
 # met
 
 met_raw <- getODSExport(select_str = "date_time, ws, wd",
@@ -64,18 +59,25 @@ met_raw <- getODSExport(select_str = "date_time, ws, wd",
                        order_by = NULL,
                        refine = NULL,
                        apikey = NULL)
+# check to see if data matches
+data_ok <- check_length(date_on, date_off, dl_data = ld_raw) &
+    check_length(date_on, date_off, dl_data = met_raw)
 
+if(data_ok) {
 met_proc_tbl <- met_raw %>% 
-    select(date = date_time, ws, wd, rh, temp) %>% 
+    select(date = date_time, ws, wd) %>% 
     timeAverage(avg.time = "hour")
 
-# join
-
 joined_tbl <- ld_raw %>% 
-    left_join(met_proc_tbl, by = "date")
+    left_join(met_proc_tbl, by = "date") %>% 
+    return()
+} else {
+    return(print("Data returned does not match dates selected"))
+}
 
+}
 
-# plot
+# Plotting Function ----
 
 polar_plot <- function(joined_tbl, pollutant = "pm10"){
     
@@ -97,8 +99,21 @@ stop  <- joined_tbl$date %>%
 return(plot(pp$plot))    
 }
 
-plot(pp$plot)
+# Check dates and download data if valid ----
 
-?polarPlot
+dates_ok <- recent(date_on) &
+    recent(date_off) &
+    order_dates(date_on, date_off) &
+    not_too_recent(date_off)
 
+if(dates_ok){
+joined_tbl <- get_data(date_on, date_off, sensor_id)
+} else {
+    print("Unable to dowload data due to invalid dates")
+}
 
+if(exists("joined_tbl")){
+polar_plot(joined_tbl, pollutant = "pm2.5")
+} else {
+    print("No data to plot")
+}
