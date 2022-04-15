@@ -9,10 +9,33 @@ source("../airquality/importODS.R")
 
 # Variables ----
 
-date_on <- "2022-04-01"
-date_off <- "2022-04-14"
+date_on <- "2022-04-01 00:00:00"
+date_off <- "2022-04-14 23:59:59"
 sensor_id <- "70326"
 pollutant <- "pm10"
+
+
+# Checking inputs ----
+
+
+
+recent <- . %>% as.Date() %>% year() %>% `>`(2018)
+not_too_recent <- . %>% as.Date() %>% `<`(Sys.Date() - 1)
+order_dates <- function(date_on, date_off){
+    date_off %>% as.Date() > date_on %>% as.Date()
+}
+
+not_too_recent("2022-04-13")
+
+order_dates(date_on, date_off)
+
+check_length <- function(date_on, date_off, ld_raw){
+    start = as.POSIXct(date_on)
+    end = as.POSIXct(date_off)
+    difftime(end, start, units = "hours") %>% 
+        as.integer() == nrow(ld_raw)
+}
+
 
 # get some sample data
 
@@ -32,7 +55,7 @@ ld_raw <- getODSExport(select_str = "sensor_id, date, pm10, pm2_5",
     
 # met
 
-met_raw <- getODSExport(select_str = "date_time, temp, ws, wd, rh",
+met_raw <- getODSExport(select_str = "date_time, ws, wd",
                         where_str = "",
                         date_col = "date_time",
                         dateon = date_on,
