@@ -41,29 +41,29 @@ return(
 
 get_data <- function(date_on, date_off, sensor_id){
 # have we got most (95%) of the data
-check_length <- function(date_on, date_off, dl_data){
-    nms <- names(dl_data)
-    ismet <- any(grepl("wd", nms)) # met data half hourly so adjust check
-    if(ismet) mult = 2L else mult = 1L
-    start = as.POSIXct(date_on)
-    end = as.POSIXct(date_off)
-    # do at least 95% of data exist?
-    (difftime(end, start, units = "hours") %>% 
-        as.integer() * mult / nrow(dl_data)) %>% 
-        abs() > 0.95 %>% 
-        return()
-}
+    check_length <- function(date_on, date_off, dl_data){
+        nms <- names(dl_data)
+        ismet <- any(grepl("wd", nms)) # met data half hourly so adjust check
+        if(ismet) mult = 2L else mult = 1L
+        start = as.POSIXct(date_on)
+        end = as.POSIXct(date_off)
+        # do at least 95% of data exist?
+        (difftime(end, start, units = "hours") %>% 
+            as.integer() * mult / nrow(dl_data)) %>% 
+            abs() > 0.95 %>% 
+            return()
+    }
 
-ld_raw <- getODSExport(select_str = "sensor_id, date, pm10, pm2_5",
-                       date_col = "date",
-                       dateon = date_on,
-                       dateoff = date_off,
-                       where_str = glue("sensor_id={sensor_id}"),
-                       dataset = "luftdaten_pm_bristol",
-                       order_by = NULL,
-                       refine = NULL,
-                       apikey = NULL) %>% 
-    rename(pm2.5 = pm2_5)
+    ld_raw <- getODSExport(select_str = "sensor_id, date, pm10, pm2_5",
+                           date_col = "date",
+                           dateon = date_on,
+                           dateoff = date_off,
+                           where_str = glue("sensor_id={sensor_id}"),
+                           dataset = "luftdaten_pm_bristol",
+                           order_by = NULL,
+                           refine = NULL,
+                           apikey = NULL) %>% 
+        rename(pm2.5 = pm2_5)
 
 # met
 
