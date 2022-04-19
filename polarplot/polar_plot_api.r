@@ -1,18 +1,17 @@
-# install.packages("plumber")
-library("plumber")
-# Source import functions ----
+# Libraries ----
 
-source("../airquality/importODS.R")
+library("openair")
 
 # Variables ----
 
-date_on <- "2022-04-01 00:00:00"
-date_off <- "2022-04-07 23:59:59"
-sensor_id <- "70326"
-pollutant <- "pm10"
-
+# date_on <- "2022-04-01 00:00:00"
+# date_off <- "2022-04-07 23:59:59"
+# sensor_id <- "70326"
+# pollutant <- "pm10"
 
 # Functions for checking inputs ----
+# dates
+dates_ok <- function(date_on, date_off){
 
 recent <- . %>% as.Date() %>% year() %>% `>`(2018)
 
@@ -22,15 +21,33 @@ order_dates <- function(date_on, date_off){
     date_off %>% as.Date() > date_on %>% as.Date()
 }
 
+interval_length <- function(date_on, date_off){
+    stop <- date_off %>% as.Date()
+    start <- date_on %>% as.Date()
+        difftime(stop, start, unit = "hours") %>%
+            as.integer() > 48
+}
+
+return(
+    recent(date_on) &
+    recent(date_off) &
+    order_dates(date_on, date_off) &
+    not_too_recent(date_off) &
+    interval_length(date_on, date_off)
+)
+}
+
 # Function for download aq and met data ----
+
 get_data <- function(date_on, date_off, sensor_id){
 # have we got most (95%) of the data
 check_length <- function(date_on, date_off, dl_data){
     nms <- names(dl_data)
-    ismet <- any(grepl("wd", st)) # met data half hourly so adjust check
-    if(ismet) mult = 2 else mult = 1
+    ismet <- any(grepl("wd", nms)) # met data half hourly so adjust check
+    if(ismet) mult = 2L else mult = 1L
     start = as.POSIXct(date_on)
     end = as.POSIXct(date_off)
+    # do at least 95% of data exist?
     (difftime(end, start, units = "hours") %>% 
         as.integer() * mult / nrow(dl_data)) %>% 
         abs() > 0.95 %>% 
@@ -100,20 +117,16 @@ return(plot(pp$plot))
 }
 
 # Check dates and download data if valid ----
+# 
+# if(dates_ok){
+# joined_tbl <- get_data(date_on, date_off, sensor_id)
+# } else {
+#     print("Unable to dowload data due to invalid dates")
+# }
+# 
+# if(exists("joined_tbl")){
+# polar_plot(joined_tbl, pollutant = "pm2.5")
+# } else {
+#     print("No data to plot")
+# }
 
-dates_ok <- recent(date_on) &
-    recent(date_off) &
-    order_dates(date_on, date_off) &
-    not_too_recent(date_off)
-
-if(dates_ok){
-joined_tbl <- get_data(date_on, date_off, sensor_id)
-} else {
-    print("Unable to dowload data due to invalid dates")
-}
-
-if(exists("joined_tbl")){
-polar_plot(joined_tbl, pollutant = "pm2.5")
-} else {
-    print("No data to plot")
-}
