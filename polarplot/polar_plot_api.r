@@ -8,7 +8,6 @@ library("openair")
 # date_off <- "2022-04-07 23:59:59"
 # sensor_id <- "70326"
 # pollutant <- "pm10"
-
 # Functions for checking inputs ----
 # dates
 dates_ok <- function(date_on, date_off){
