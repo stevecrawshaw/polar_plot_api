@@ -12,28 +12,27 @@ library("openair")
 # dates
 dates_ok <- function(date_on, date_off){
 
-recent <- . %>% as.Date() %>% year() %>% `>`(2018)
-
-not_too_recent <- . %>% as.Date() %>% `<`(Sys.Date() - 1)
-
-order_dates <- function(date_on, date_off){
-    date_off %>% as.Date() > date_on %>% as.Date()
-}
+    recent <- . %>% as.Date() %>% year() %>% `>`(2018)
+    
+    not_too_recent <- . %>% as.Date() %>% `<`(Sys.Date() - 1)
+    
+    order_dates <- function(date_on, date_off){
+        date_off %>% as.Date() > date_on %>% as.Date()
+        }
 
 interval_length <- function(date_on, date_off){
     stop <- date_off %>% as.Date()
     start <- date_on %>% as.Date()
         difftime(stop, start, unit = "hours") %>%
             as.integer() > 48
-}
+        }
 
 return(
     recent(date_on) &
     recent(date_off) &
     order_dates(date_on, date_off) &
     not_too_recent(date_off) &
-    interval_length(date_on, date_off)
-)
+    interval_length(date_on, date_off))
 }
 
 # Function for download aq and met data ----
